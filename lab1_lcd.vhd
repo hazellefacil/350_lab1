@@ -7,11 +7,7 @@ USE Ieee.numeric_std.all;
 ENTITY lab1_lcd is
 	PORT(
 		KEY : in std_logic_vector(3 downto 0);
-<<<<<<< HEAD
 		CLOCK_50 : in std_logic := '0';
-=======
-		clk : in std_logic := '0';
->>>>>>> e9681ffc8387f1cd6332307cad1145a9b662ba15
 		LCD_ON : out std_logic := '1'; 
 		LCD_BLON : out std_logic := '1'; 
 		LCD_RW : out std_logic := '0'; 
@@ -28,12 +24,16 @@ END lab1_lcd;
 
 ARCHITECTURE behaviour OF lab1_lcd IS
 
-<<<<<<< HEAD
 TYPE State_type is (SETUP_0,SETUP_1,SETUP_2,SETUP_3,SETUP_4,SETUP_5,FORWARD,BACKWARD);
 SIGNAL	STATE, NEXT_STATE : State_type;
 TYPE arr_type is array (0 to 4) of std_logic_vector(7 downto 0);
 SIGNAL name : arr_type;
 SIGNAL letter : INTEGER range 0 to 4 := 0;
+SIGNAL slow_clock : std_logic := '0';
+SIGNAL clk_counter : std_logic_vector(26 downto 0);
+CONSTANT all_ones : std_logic_vector(26 downto 0) := (OTHERS => '1');
+CONSTANT all_zeros : std_logic_vector(26 downto 0) := (OTHERS => '0');
+SIGNAL screen_counter : INTEGER range 0 to 16 := 0;
 	
 BEGIN	
 
@@ -46,26 +46,14 @@ BEGIN
 	name(2) <= "01010101"; -- U
 	name(3) <= "01010010"; -- R
 	name(4) <= "01000001"; -- A
-=======
-Type State_type is (SETUP_0,SETUP_1,SETUP_2,SETUP_3,SETUP_4,SETUP_5,FORWARD,BACKWARD);
-SIGNAL	STATE : State_type;
-
-
-	
-BEGIN
-
-	PROCESS(KEY(0), KEY(3))
-	BEGIN
->>>>>>> e9681ffc8387f1cd6332307cad1145a9b662ba15
 
 	--to display with LEDs--
 		LEDG(3) <= KEY(3);
-		LEDG(0) <= KEY(0);
+		LEDG(0) <= slow_clock;
 		
 	--always this value--
 		LCD_BLON <= '1';
 		LCD_ON <= '1';
-<<<<<<< HEAD
 		LCD_RW <= '0';	
 		
 	--state machine cases--
@@ -135,145 +123,115 @@ BEGIN
 	END PROCESS;	
 
   -- process to control clock and change states
-	PROCESS(KEY(0), KEY(3))
+	PROCESS(slow_clock, KEY(3))
 	BEGIN
-		LCD_EN <= KEY(0);
+		LCD_EN <= slow_clock;
 		
 		IF(KEY(3) = '0') THEN --reset--
 				STATE <= SETUP_0;
 				letter <= 0;
-		ELSIF (Rising_Edge(KEY(0))) THEN --"clock edge" with button--
+				screen_counter <= 0;
+		ELSIF (Rising_Edge(slow_clock)) THEN --"clock edge" with button--
 			
 			-- switching between forward and reverse in one button press --
 			IF ((NEXT_STATE = FORWARD) AND (SW(0) = '1')) THEN
-				STATE <= BACKWARD;
-				IF (letter = 0) THEN
-					letter <= 4;
+			
+				IF (screen_counter = 16) THEN
+					STATE <= SETUP_3; -- clear the screen
+					screen_counter <= 0;
 				ELSE
-					letter <= letter - 1;
+					STATE <= BACKWARD;
+					screen_counter <= screen_counter + 1;
 				END IF;
-				
-			ELSIF ((NEXT_STATE = BACKWARD) AND (SW(0) = '0')) THEN
-				STATE <= FORWARD;
-				
-				IF (letter = 4) THEN
-					letter <= 0;
-				ELSE
-					letter <= letter + 1;
-				END IF;
-				
-			ELSE
-				STATE <= NEXT_STATE;
-				IF (NEXT_STATE = FORWARD) THEN
-					IF (letter = 4) THEN
-						letter <= 0;
-					ELSE
-						letter <= letter + 1;
-					END IF;
 					
-				ELSIF (NEXT_STATE = BACKWARD) THEN 
+				IF ((STATE = FORWARD) OR (STATE = BACKWARD)) THEN
 					IF (letter = 0) THEN
 						letter <= 4;
 					ELSE
 						letter <= letter - 1;
 					END IF;
-					
 				END IF;
-			END IF;
-			
+				
+			ELSIF ((NEXT_STATE = BACKWARD) AND (SW(0) = '0')) THEN
+				IF (screen_counter = 16) THEN
+					STATE <= SETUP_3; -- clear the screen
+					screen_counter <= 0;
+				ELSE
+					STATE <= FORWARD;
+					screen_counter <= screen_counter + 1;
+				END IF;
+				
+				IF ((STATE = FORWARD) OR (STATE = BACKWARD)) THEN
+					IF (letter = 4) THEN
+						letter <= 0;
+					ELSE
+						letter <= letter + 1;
+					END IF;
+				END IF;
+				
+			ELSE
+				
+				IF (NEXT_STATE = FORWARD) THEN
+				
+				IF (screen_counter = 16) THEN
+					STATE <= SETUP_3; -- clear the screen
+					screen_counter <= 0;
+				ELSE
+					STATE <= NEXT_STATE;
+					screen_counter <= screen_counter + 1;
+				END IF;
+				
+				IF ((STATE = FORWARD) OR (STATE = BACKWARD)) THEN
+					IF (letter = 4) THEN
+						letter <= 0;
+					ELSE
+						letter <= letter + 1;
+					END IF;
+				END IF;
+					
+				ELSIF (NEXT_STATE = BACKWARD) THEN 
+				
+					IF (screen_counter = 16) THEN
+						STATE <= SETUP_3; -- clear the screen
+						screen_counter <= 0;
+					ELSE
+						STATE <= NEXT_STATE;
+						screen_counter <= screen_counter + 1;
+					END IF;
+				
+					IF ((STATE = FORWARD) OR (STATE = BACKWARD)) THEN
+						IF (letter = 0) THEN
+							letter <= 4;
+						ELSE
+							letter <= letter - 1;
+						END IF;
+					END IF;
+				ELSE
+					STATE <= NEXT_STATE;
+				END IF;
+				
+			END IF;			
 		END IF;
 	END PROCESS;
 	
-END behaviour;
-=======
-		LCD_RW <= '0';
-
-	--reset--
-	IF(KEY(3) = '0') THEN
+	slow_clk: PROCESS (CLOCK_50)
+	BEGIN
+	-- use 27 bits for 2^26
+	
+	IF Rising_Edge(Clock_50) THEN
 		
-			STATE <= SETUP_0;
-		
-	--"clock edge" with button--
-	ELSIF(falling_edge(KEY(0))) THEN
-		
-		
-		--state machine cases--
-			CASE STATE IS
-			
-				WHEN SETUP_0 => 		
-					LCD_EN <= NOT KEY(0);
-					LCD_RS <= '0';
-					LCD_EN <= KEY(0);
-					LCD_DATA <= "00111000";
-					LEDR <= "00111000";
-					STATE <= SETUP_1;
-						
-					WHEN SETUP_1 => 		
-						--logic for set up here
-						LCD_RS <= '0';
-						LCD_EN <= NOT KEY(0);
-						LCD_DATA <= "00111000";
-						LEDR <= "00111000";
-						STATE <= SETUP_2;
-						
-					WHEN SETUP_2 => 		
-						--logic for set up here
-						LCD_RS <= '0';
-						LCD_EN <= NOT KEY(0);
-						LCD_DATA <= "00001100";
-						LEDR <= "00001100";
-						STATE <= SETUP_3;
-
-						
-					WHEN SETUP_3 => 		
-						--logic for set up here
-						LCD_RS <= '0';
-						LCD_EN <= NOT KEY(0);
-						LCD_DATA <= "00000001";
-						LEDR <= "00000001";
-						STATE <= SETUP_4;
-						
-					WHEN SETUP_4 => 		
-						--logic for set up here
-						LCD_RS <= '0';
-						LCD_EN <= NOT KEY(0);
-						LCD_DATA <= "00000110";
-						LEDR <= "00000110";
-						STATE <= SETUP_5;
-						
-					WHEN SETUP_5 => 		
-						--logic for set up here
-						LCD_RS <= '0';
-						LCD_EN <= NOT KEY(0);
-						LCD_DATA <= "10000000";
-						LEDR <= "10000000";
-						STATE <= FORWARD;
-						
-				WHEN FORWARD => 
-					--logic here for letters
-				
-					IF(SW(0) = '1') THEN
-						STATE <= BACKWARD;
-					END IF;
-					
-					LCD_RS <= '1';
-					LCD_EN <= NOT KEY(0);
-					LCD_DATA <= "01001100";
-					LEDR <= "01001100";
-				
-				WHEN BACKWARD => 
-					--logic here for letters
-					
-					LCD_RS <= '1';
-					LCD_EN <= NOT KEY(0);
-					LCD_DATA <= "01000001";
-					LEDR <= "01000001";
-					
-			END CASE;
+		IF (clk_counter = all_ones) THEN -- 27 bits set to 1
+			clk_counter <= all_zeros;
+		ELSE
+			clk_counter <= std_logic_vector(unsigned(clk_counter) + 1);
 		END IF;
 		
+	END IF;
+	
+	slow_clock <= clk_counter(26);
+		
 	END PROCESS;
-		
-		
+	
+	LEDG(1) <= slow_clock;
+	
 END behaviour;
->>>>>>> e9681ffc8387f1cd6332307cad1145a9b662ba15
